@@ -17,20 +17,26 @@ bool hit_plane(const point3& plane_point, const vec3& plane_vector, const ray& r
 
     // dist = ((P0 - R0) DOT PV) / Rdir DOT PV
 
-    if (dot(r.direction(), plane_vector) == 0) {return false;}
-
-    auto dist = (dot((plane_point - r.origin()), plane_vector) / dot(r.direction(), plane_vector));
-    if (dist >= 0) {return true;}
-    else{ return false; }
+    double denom = dot(r.direction(), plane_vector);
+    if (denom != 0)
+    {
+        double t = dot(plane_point - r.origin(), plane_vector) / denom;
+        if (t > 1) return true;  // condition for the plane to be behind the viewport
+    }
+    return false;
 
 }
 
 color ray_color(const ray& r) {
     
-    if (hit_sphere(point3(1,0,0), 0.5, r))
+    if (hit_sphere(point3(2,0,0), 0.5, r))
         return color(1, 0, 0);
 
     if (hit_plane(point3(1,0,-2), vec3(1, 3, 1), r)){
+        return color(0, 1, 0);
+    }
+
+    if (hit_plane(point3(1,0,-2), vec3(1, -3, 1), r)){
         return color(0, 1, 0);
     }
     
@@ -69,7 +75,7 @@ int main() {
     v_z = unit_vector(v_z);
     auto v_y = cross(v_z, v_x);
     v_y = unit_vector(v_y);
-   
+    
 
     // Calculate the vectors across the horizontal and down the vertical viewport edges.
     auto viewport_u = vec3(0, 0, viewport_width);
@@ -88,16 +94,15 @@ int main() {
 
     std::cout << "P3\n" << image_width << ' ' << image_height << "\n255\n";
 
+    vec3 ray_direction, pixel_center, pixel_color;
     for (int j = 0; j < image_height; ++j) {
         for (int i = 0; i < image_width; ++i) {
-            auto pixel_center = top_left_pixel + (i * pixel_delta_u) + (j * pixel_delta_v); // jumping from pixel to pixel with the mini-vectors
-            auto ray_direction = pixel_center - camera_center;
-
-            ray_direction = ray_direction / ray_direction.length();   // making it a unit vector
+            pixel_center = top_left_pixel + (i * pixel_delta_u) + (j * pixel_delta_v); // jumping from pixel to pixel with the mini-vectors
+            ray_direction = pixel_center - camera_center;  // t == 1, as pixel_center = camera_center + t*ray_direction
 
             ray r(camera_center, ray_direction);
 
-            color pixel_color = ray_color(r);   // painting the pixel with the color of the object that the pixel intercepted
+            pixel_color = ray_color(r);   // painting the pixel with the color of the object that the pixel intercepted
             
             write_color(std::cout, pixel_color);
         }
