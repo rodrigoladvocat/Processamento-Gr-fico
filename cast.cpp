@@ -27,7 +27,7 @@ bool hit_plane(const point3& plane_point, const vec3& plane_vector, const ray& r
 
 color ray_color(const ray& r) {
     
-    if (hit_sphere(point3(0,0,-1), 0.5, r))
+    if (hit_sphere(point3(1,0,0), 0.5, r))
         return color(1, 0, 0);
 
     if (hit_plane(point3(1,0,-2), vec3(1, 3, 1), r)){
@@ -40,8 +40,9 @@ color ray_color(const ray& r) {
 int main() {
 
     // Image
+    double aspect_ratio ;
+    std::cin >> aspect_ratio;
 
-    double aspect_ratio = 16.0 / 9.0;
     int image_width = 400;
 
     // Calculate the image height, and ensure that it's at least 1.
@@ -49,14 +50,29 @@ int main() {
     image_height = (image_height < 1) ? 1 : image_height;
 
     // Camera
-
-    auto focal_length = 1.0;    // distance between the viewport and the camera
+    int x, y, z;
+    std::cin >> x >> y >> z;
+    auto camera_center = point3(x, y, z);
+    std::cin >> x >> y >> z;
+    auto v_up = vec3(x, y, z);
+    std::cin >> x >> y >> z;
+    auto M = point3(x, y, z);   // viewport center
+    auto focal_length = (M-camera_center).length();   // distance between the viewport and the camera
     auto viewport_height = 2.0;
     auto viewport_width = viewport_height * (static_cast<double>(image_width)/image_height);
-    auto camera_center = point3(0, 0, 0);
+
+    // orthonormal vectors
+
+    auto v_x = unit_vector(camera_center - M);
+    v_x = unit_vector(v_x);
+    auto v_z = -cross(v_up, -v_x);
+    v_z = unit_vector(v_z);
+    auto v_y = cross(v_z, v_x);
+    v_y = unit_vector(v_y);
+   
 
     // Calculate the vectors across the horizontal and down the vertical viewport edges.
-    auto viewport_u = vec3(viewport_width, 0, 0);
+    auto viewport_u = vec3(0, 0, viewport_width);
     auto viewport_v = vec3(0, -viewport_height, 0);  //top to bottom vector
 
     // Calculate the horizontal and vertical delta vectors from pixel to pixel.
@@ -65,7 +81,7 @@ int main() {
     auto pixel_delta_v = viewport_v / image_height;
 
     // Calculate the location of the upper left pixel.
-    auto viewport_upper_left = camera_center + vec3(0, 0, -focal_length) - viewport_u/2 - viewport_v/2; // top left corner
+    auto viewport_upper_left = M - viewport_u/2 - viewport_v/2; // top left corner
     auto top_left_pixel = viewport_upper_left + 0.5 * (pixel_delta_v + pixel_delta_u);  //  pixel (0, 0)
 
     // Render
