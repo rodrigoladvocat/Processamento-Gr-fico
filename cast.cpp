@@ -21,7 +21,7 @@ bool hit_plane(const point3& plane_point, const vec3& plane_vector, const ray& r
     if (denom != 0)
     {
         double t = dot(plane_point - r.origin(), plane_vector) / denom;
-        if (t > 1) return true;  // condition for the plane to be behind the viewport
+        if (t >= 1) return true;  // condition for the plane to be behind the viewport
     }
     return false;
 
@@ -29,17 +29,15 @@ bool hit_plane(const point3& plane_point, const vec3& plane_vector, const ray& r
 
 color ray_color(const ray& r) {
     
-    if (hit_sphere(point3(2,0,0), 0.5, r))
+    if (hit_sphere(point3(2,0,0), 0.2, r))
         return color(1, 0, 0);
 
-    if (hit_plane(point3(1,0,-2), vec3(1, 3, 1), r)){
-        return color(0, 1, 0);
-    }
-
-    if (hit_plane(point3(1,0,-2), vec3(1, -3, 1), r)){
-        return color(0, 1, 0);
-    }
+    if (hit_sphere(point3(5,5,0), 0.4, r))
+        return color(0, 0, 1);
     
+    if (hit_plane(point3(3, 2, 2), vec3(1, 0, 0), r)){
+        return(color(1,1,0));
+    }
     return color(0, 0, 0);
 }
 
@@ -95,6 +93,8 @@ int main() {
     std::cout << "P3\n" << image_width << ' ' << image_height << "\n255\n";
 
     vec3 ray_direction, pixel_center, pixel_color;
+
+
     for (int j = 0; j < image_height; ++j) {
         for (int i = 0; i < image_width; ++i) {
             pixel_center = top_left_pixel + (i * pixel_delta_u) + (j * pixel_delta_v); // jumping from pixel to pixel with the mini-vectors
@@ -107,4 +107,6 @@ int main() {
             write_color(std::cout, pixel_color);
         }
     }
+
+    //std::cout << M - camera_center << std::endl;
 }
