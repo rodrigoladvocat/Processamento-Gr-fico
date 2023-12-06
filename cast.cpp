@@ -4,16 +4,19 @@
 #include "color.h"
 
 
-bool hit_sphere(const point3& center, double radius, const ray& r) {
+double hit_sphere(const point3& center, double radius, const ray& r) {
     vec3 oc = r.origin() - center;
     auto a = dot(r.direction(), r.direction());
     auto b = 2.0 * dot(oc, r.direction());
     auto c = dot(oc, oc) - radius*radius;
     auto delta = b*b - 4*a*c;
-    return (delta >= 0);
+
+    if (delta < 0) return -1;
+
+    return (std::min((- b - delta)/(2*a), (- b + delta)/(2*a)));  // retornando o menor valor de t para r(t) = v*t + o
 }
 
-bool hit_plane(const point3& plane_point, const vec3& plane_vector, const ray& r){
+double hit_plane(const point3& plane_point, const vec3& plane_vector, const ray& r){
 
     // dist = ((P0 - R0) DOT PV) / Rdir DOT PV
 
@@ -21,21 +24,58 @@ bool hit_plane(const point3& plane_point, const vec3& plane_vector, const ray& r
     if (denom != 0)
     {
         double t = dot(plane_point - r.origin(), plane_vector) / denom;
-        if (t >= 1) return true;  // condition for the plane to be behind the viewport
+        return t;  
     }
-    return false;
+    return -1;
+
+}
+
+double hit_triangle(const point3& vertices, point3 *points_list, const ray& r){
+    // finding the plane that contains the triangle
+
+    int first = vertices.x();
+    int second = vertices.y();
+    int third = vertices.z();
+
+    point3 A = points_list[first];
+    point3 B = points_list[second];
+    point3 C = points_list[third];
+
+    vec3 vec_1 = A - B;
+    vec3 vec_2 = C - B;
+
+    vec3 t_normal = cross(vec_1, vec_2);  // vetor normal ao plano que é descrito pelos três vertices do triangulo
+
+    double t = hit_plane(A, t_normal, r);
+
+    if (t < 1) return -1; // o raio nao tem interseção com o plano
+
+    point3 P = t*r.direction() + r.origin();  // ponto de interseçao com o plano
+
+    // para as areas dos triangulos formados pelas combinaçoes de vertices
+    double aABC = 0.5 * cross((A - B), (B - C)).length();
+    double aPBC = 0.5 * cross((P - B), (B - C)).length();
+    double aPBA = 0.5 * cross((P - B), (B - A)).length();
+    double aPAC = 0.5 * cross((P - A), (A - C)).length();
+
+    if (aABC <= 0) return -1; // pontos colineares => area de ABC é 0
+
+    double sum = aPBC + aPBA + aPAC;
+
+    if (!(sum > aABC)) return t;
+    else return -1;
 
 }
 
 color ray_color(const ray& r) {
     
-    if (hit_sphere(point3(2,0,0), 0.2, r))
+    if (hit_sphere(point3(2,0,0), 0.2, r) > 1)
         return color(1, 0, 0);
 
-    if (hit_sphere(point3(5,5,0), 0.4, r))
+    if (hit_sphere(point3(5,5,0), 0.4, r) > 1)
         return color(0, 0, 1);
     
-    if (hit_plane(point3(3, 2, 2), vec3(1, 0, 0), r)){
+    if (hit_plane(point3(3, 2, 2), vec3(1, 0, 0), r) > 1){
         return(color(1,1,0));
     }
     return color(0, 0, 0);
@@ -88,13 +128,42 @@ int main() {
     auto viewport_upper_left = M - viewport_u/2 - viewport_v/2; // top left corner
     auto top_left_pixel = viewport_upper_left + 0.5 * (pixel_delta_v + pixel_delta_u);  //  pixel (0, 0)
 
+    // inputs para a malha de triangulos:
+    int n_triangles, n_vertices;
+
+    std::cin >> n_triangles >> n_vertices;
+
+    point3 *points_list = new point3[n_vertices];
+
+    for (int i = 0; i < n_vertices; i++){
+        std::cin >> x >> y >> z;
+        points_list[i] = point3(x, y, z); 
+    }
+
+    point3 *triangles_list = new point3[n_triangles];
+    for (int i = 0; i < n_triangles; i++){
+        std::cin >> x >> y >> z;
+        triangles_list[i] = point3(x, y, z); // se trata dos indices dos vertices que compoem cada triangulo
+    }
+
+    vec3 *triangles_normals = new vec3[n_triangles];
+    for (int i = 0; i < n_triangles; i++){
+        std::cin >> x >> y >> z;
+        triangles_normals[i] = vec3(x, y, z); 
+    }
+
+    vec3 *vertices_normals = new vec3[n_vertices];
+    for (int i = 0; i < n_vertices; i++){
+        std::cin >> x >> y >> z;
+        vertices_normals[i] = vec3(x, y, z); 
+    }
+
     // Render
 
     std::cout << "P3\n" << image_width << ' ' << image_height << "\n255\n";
 
     vec3 ray_direction, pixel_center, pixel_color;
-
-
+    
     for (int j = 0; j < image_height; ++j) {
         for (int i = 0; i < image_width; ++i) {
             pixel_center = top_left_pixel + (i * pixel_delta_u) + (j * pixel_delta_v); // jumping from pixel to pixel with the mini-vectors
@@ -108,5 +177,4 @@ int main() {
         }
     }
 
-    //std::cout << M - camera_center << std::endl;
 }
