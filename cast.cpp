@@ -67,7 +67,11 @@ double hit_triangle(const point3& vertices, point3 *points_list, const ray& r){
 
 }
 
-color ray_color(const ray& r) {
+color ray_color(const ray& r, point3* points_list) {
+
+    if (hit_triangle(point3(0, 1, 2), points_list, r) > 1){
+        return (color(1, 1, 1));
+    }
     
     if (hit_sphere(point3(2,0,0), 0.2, r) > 1)
         return color(1, 0, 0);
@@ -171,7 +175,7 @@ int main() {
 
             ray r(camera_center, ray_direction);
 
-            pixel_color = ray_color(r);   // painting the pixel with the color of the object that the pixel intercepted
+            pixel_color = ray_color(r, points_list);   // painting the pixel with the color of the object that the pixel intercepted
             
             write_color(std::cout, pixel_color);
         }
