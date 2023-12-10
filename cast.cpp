@@ -67,7 +67,7 @@ double hit_triangle(const point3& vertices, point3 *points_list, const ray& r){
 
 color ray_color(const ray& r, point3* points_list, point3* triangles_list) {
 
-    int n_objects = 5;  // numero de objetos que serao renderizados 
+    int n_objects = 4;  // numero de objetos que serao renderizados 
     double min_t = -1;
     color min_t_color = color(0, 0, 0);
 
@@ -87,10 +87,9 @@ color ray_color(const ray& r, point3* points_list, point3* triangles_list) {
     color_list[1] = color(1, 0, 0);
     color_list[2] = color(0, 0, 1);
     color_list[3] = color(1, 1, 0);
-    color_list[4] = color(1, 1, 0);
 
     for (int i = 0; i < n_objects; i++){
-        if (t_list[i] > 1){
+        if (t_list[i] >= 1){
             if (t_list[i] < min_t || min_t == -1){
                 min_t = t_list[i];
                 min_t_color = color_list[i];
