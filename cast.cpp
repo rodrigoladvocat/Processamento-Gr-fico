@@ -60,7 +60,7 @@ double hit_triangle(const point3& vertices, point3 *points_list, const ray& r){
 
     double sum = aPBC + aPBA + aPAC;
 
-    if (!(sum > aABC)) return t;
+    if (sum == aABC) return t;
     else return -1;
 
 }
