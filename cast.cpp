@@ -67,18 +67,23 @@ double hit_triangle(const point3& vertices, point3 *points_list, const ray& r){
 
 }
 
-color ray_color(const ray& r, point3* points_list, int n_objects) {
+color ray_color(const ray& r, point3* points_list, point3* triangles_list) {
 
+    int n_objects = 4;  // numero de objetos que serao renderizados 
     double min_t = -1;
     color min_t_color = color(0, 0, 0);
 
     double *t_list = new double[n_objects];
     color *color_list = new color[n_objects];
 
-    t_list[0] = hit_triangle(point3(0, 1, 2), points_list, r);
-    t_list[1] = hit_sphere(point3(2,0,0), 0.2, r);
-    t_list[2] = hit_sphere(point3(5,5,0), 0.4, r);
-    t_list[3] = hit_plane(point3(7, 2, 2), vec3(1, 0, 0), r);
+    
+    t_list[0] = hit_sphere(point3(2,0,0), 0.2, r);
+    t_list[1] = hit_sphere(point3(5,5,0), 0.4, r);
+    t_list[2] = hit_plane(point3(7, 2, 2), vec3(1, 0.2, 0.3), r);
+
+    for(int i = 2 + 1; i < n_objects; i++){
+        t_list[i] = hit_triangle(triangles_list[i - 3], points_list, r);
+    }
 
     color_list[0] = color(1, 1, 1);
     color_list[1] = color(1, 0, 0);
@@ -188,7 +193,7 @@ int main() {
 
             ray r(camera_center, ray_direction);
 
-            pixel_color = ray_color(r, points_list, 4);   // painting the pixel with the color of the object that the pixel intercepted
+            pixel_color = ray_color(r, points_list, triangles_list);   // painting the pixel with the color of the object that the pixel intercepted
             
             write_color(std::cout, pixel_color);
         }
