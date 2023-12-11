@@ -18,12 +18,10 @@ double hit_sphere(const point3& center, double radius, const ray& r) {
 
 double hit_plane(const point3& plane_point, const vec3& plane_vector, const ray& r){
 
-    // dist = ((P0 - R0) DOT PV) / Rdir DOT PV
-
     double denom = dot(r.direction(), plane_vector);
     if (denom != 0)
     {
-        double t = dot(plane_point - r.origin(), plane_vector) / denom;
+        double t = (dot(plane_vector, plane_point) - dot(r.origin(), plane_vector)) / denom;
         return t;  
     }
     return -1;
@@ -50,49 +48,66 @@ double hit_triangle(const point3& vertices, point3 *points_list, const ray& r){
 
     if (t < 1) return -1; // o raio nao tem interseção com o plano
 
-    point3 P = t*r.direction() + r.origin();  // ponto de interseçao com o plano
+    point3 P = r.at(t);  // ponto de interseçao com o plano = > P = t*r + origem
 
     // para as areas dos triangulos formados pelas combinaçoes de vertices
-    double aABC = 0.5 * cross((A - B), (B - C)).length();
-    double aPBC = 0.5 * cross((P - B), (B - C)).length();
-    double aPBA = 0.5 * cross((P - B), (B - A)).length();
-    double aPAC = 0.5 * cross((P - A), (A - C)).length();
+    double aABC = 0.5 * cross((A - B), (C - B)).length();
+    double aPBC = 0.5 * cross((B - P), (C - P)).length();
+    double aPBA = 0.5 * cross((B - P), (A - P)).length();
+    double aPAC = 0.5 * cross((A - P), (C - P)).length();
+
+    // aPBC = aPBC / aABC;
+    // aPBA = aPBA / aABC;
+    // aPAC = aPAC / aABC;
 
     double sum = aPBC + aPBA + aPAC;
 
-    if (sum == aABC) return t;
-    else return -1;
+    if (sum > aABC) return -1;
+    else return t;
 
 }
 
-color ray_color(const ray& r, point3* points_list, point3* triangles_list) {
+color ray_color(const ray& r, point3* points_list, point3* triangles_list, int n_triangles) {
 
-    int n_objects = 4;  // numero de objetos que serao renderizados 
+    int n_objects = 3;  // numero de objetos que serao renderizados, fora os triangulos
     double min_t = -1;
     color min_t_color = color(0, 0, 0);
 
-    double *t_list = new double[n_objects];
+    double *o_list = new double[n_objects];
+    double *t_list = new double[n_triangles];
+
     color *color_list = new color[n_objects];
 
     
-    t_list[0] = hit_sphere(point3(2,0,0), 0.2, r);
-    t_list[1] = hit_sphere(point3(5,5,0), 0.4, r);
-    t_list[2] = hit_plane(point3(7, 2, 2), vec3(1, 0.2, 0.3), r);
+    o_list[0] = hit_sphere(point3(2,0,0), 0.2, r);
+    o_list[1] = hit_sphere(point3(5,5,0), 0.4, r);
+    o_list[2] = hit_plane(point3(7, 2, 2), vec3(1, 0.2, 0.3), r);
 
-    for(int i = 2 + 1; i < n_objects; i++){
-        t_list[i] = hit_triangle(triangles_list[i - 3], points_list, r);
+    for(int i = 0; i < n_triangles; i++){
+        t_list[i] = hit_triangle(triangles_list[i], points_list, r);
     }
 
     color_list[0] = color(1, 1, 1);
     color_list[1] = color(1, 0, 0);
     color_list[2] = color(0, 0, 1);
-    color_list[3] = color(1, 1, 0);
+
+    color t_color = color(1,1,0);
+
 
     for (int i = 0; i < n_objects; i++){
+        if (o_list[i] >= 1){
+            if (o_list[i] < min_t || min_t == -1 ){
+                min_t = o_list[i];
+                min_t_color = color_list[i];
+            }
+        }
+    }
+
+    for (int i = 0; i < n_triangles; i++){
         if (t_list[i] >= 1){
             if (t_list[i] < min_t || min_t == -1){
                 min_t = t_list[i];
-                min_t_color = color_list[i];
+                min_t_color = t_color;
             }
         }
     }
@@ -191,7 +206,7 @@ int main() {
 
             ray r(camera_center, ray_direction);
 
-            pixel_color = ray_color(r, points_list, triangles_list);   // painting the pixel with the color of the object that the pixel intercepted
+            pixel_color = ray_color(r, points_list, triangles_list, n_triangles);   // painting the pixel with the color of the object that the pixel intercepted
             
             write_color(std::cout, pixel_color);
         }
