@@ -3,6 +3,7 @@
 #include "ray.h"
 #include "color.h"
 
+#define EPSILON 2.22045e-016
 
 double hit_sphere(const point3& center, double radius, const ray& r) {
     vec3 oc = r.origin() - center;
@@ -62,8 +63,8 @@ double hit_triangle(const point3& vertices, point3 *points_list, const ray& r){
 
     double sum = aPBC + aPBA + aPAC;
 
-    if (sum > aABC) return -1;
-    else return t;
+    if (fabs(aABC - sum) < EPSILON) return t;
+    else return -1;
 
 }
 
