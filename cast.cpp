@@ -3,7 +3,7 @@
 #include "ray.h"
 #include "color.h"
 
-#define EPSILON 2.22045e-016
+#define EPSILON 2.22045e-016  // menor diferença entre dois doubles
 
 double hit_sphere(const point3& center, double radius, const ray& r) {
     vec3 oc = r.origin() - center;
@@ -63,7 +63,7 @@ double hit_triangle(const point3& vertices, point3 *points_list, const ray& r){
 
     double sum = aPBC + aPBA + aPAC;
 
-    if (fabs(aABC - sum) < EPSILON) return t;
+    if (fabs(aABC - sum) <= EPSILON) return t;
     else return -1;
 
 }
@@ -117,6 +117,38 @@ color ray_color(const ray& r, point3* points_list, point3* triangles_list, int n
 
 }
 
+/*
+    A = [ cos(a) sen(a) 0]
+        [-sen(a) cos(a) 0]
+        [ 0      0      1]
+
+        matriz de rotaçao em torno do eixo z
+
+    B = [0]
+        [1]
+        [1]
+
+        translaçao
+
+
+                 [x*cos(a) +  y*sen(a)]     [0]
+    T(x, y, z) = [-x*sen(a) + y*cos(a)]  +  [1]
+                 [          z         ]     [1]
+*/
+
+point3 vec_matrix_mult(double** matrix_ptrs, point3 vec){
+    double vec_sub[3] = {0., 0., 0.};
+
+    for (int i = 0; i < 3; i++){
+        for (int j = 0; j < 3; j++){
+            vec_sub[j] += vec[i] * matrix_ptrs[j][i];
+        }
+    }
+
+    vec = point3(vec_sub[0], vec_sub[1], vec_sub[2]);
+    return vec;
+}   
+
 int main() {
 
     // Image
@@ -167,13 +199,39 @@ int main() {
     // inputs para a malha de triangulos:
     int n_triangles, n_vertices;
 
+    double matrix[3][3] = {{1.0, 0.0, 0.0    },
+                           {0.0, 0.866, 0.5  },
+                           {0.0, -0.5, 0.866 }};
+
+    double matrix_B[3] = {0, 1, 1};
+
+    // rotacionando em 30 graus no sentido anti horario em volta do eixo x.
+
+    double *matrix_ptrs[3] = {matrix[0], matrix[1], matrix[2]};
+
     std::cin >> n_triangles >> n_vertices;
 
     point3 *points_list = new point3[n_vertices];
 
     for (int i = 0; i < n_vertices; i++){
-        std::cin >> x >> y >> z;
-        points_list[i] = point3(x, y, z); 
+        std::cin >> x >> y >> z; 
+        points_list[i] = point3(x,y,z);
+    }
+
+    bool af_transf = false;
+
+    if (af_transf){
+        for (int i = 0; i < n_vertices; i++){
+            points_list[i] = vec_matrix_mult(matrix_ptrs, points_list[i]);
+            // aplicando a rotação
+
+            for (int j = 0; j < 3; j++){
+                points_list[i][j] += matrix_B[j];
+            }
+            // aplicando a translaçao
+
+
+        }
     }
 
     point3 *triangles_list = new point3[n_triangles];
