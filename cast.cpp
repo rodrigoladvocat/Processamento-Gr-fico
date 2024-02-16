@@ -93,7 +93,15 @@ double hit_triangle(const point3& vertices, point3 *points_list, const ray& r){
 
 }
 
-color ray_color(const ray& r, triangles malha) {
+// formula para o vetor normal à superficie e vetor incidente normalizados
+// vetor incidente apontando da interseçao até a fonte de luz
+vec3 reflected_light(vec3 normal_vector, vec3 incident_vector){
+    vec3 product = 2 * dot(normal_vector, incident_vector) * normal_vector;
+
+    return (product - incident_vector);
+}
+
+color ray_color(const ray& r, triangles malha, std::vector<light> l_list, color filter) {
 
     int n_spheres = 2;
     int n_planes = 1;
@@ -269,7 +277,6 @@ int main() {
             }
             // aplicando a translaçao
 
-
         }
     }
 
@@ -295,6 +302,15 @@ int main() {
     triangles malha = triangles(n_triangles, points_list, triangles_list,
                                 0, 0, 0, 0, 0, 0);
 
+    
+    // definindo pontos de luz:
+    std::vector<light> l_list;
+
+    light l1 = light(point3(2, 5, 0), color(250, 250, 250));
+
+    l_list.push_back(l1);
+
+    color filter = color(10, 200, 10);
 
     // Render
 
@@ -309,7 +325,7 @@ int main() {
 
             ray r(camera_center, ray_direction);
 
-            pixel_color = ray_color(r, malha);   // painting the pixel with the color of the object that the pixel intercepted
+            pixel_color = ray_color(r, malha, l_list, filter);   // painting the pixel with the color of the object that the pixel intercepted
             
             write_color(std::cout, pixel_color);
         }
