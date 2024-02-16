@@ -2,6 +2,8 @@
 #include "vec3.h"
 #include "ray.h"
 #include "color.h"
+#include "sphere.h"
+#include "plane.h"
 
 #define EPSILON 2.22045e-016  // menor diferença entre dois doubles
 
@@ -199,13 +201,11 @@ int main() {
     // inputs para a malha de triangulos:
     int n_triangles, n_vertices;
 
-    double matrix[3][3] = {{1.0, 0.0, 0.0    },
-                           {0.0, 0.866, 0.5  },
-                           {0.0, -0.5, 0.866 }};
+    double matrix[3][3] = {{1.0, 0.0, 0.0  },
+                           {0.0, 0.0, 1.0  },
+                           {0.0, -1.0, 0.0 }};
 
-    double matrix_B[3] = {0, 1, 1};
-
-    // rotacionando em 30 graus no sentido anti horario em volta do eixo x.
+    double matrix_B[3] = {0, 0, 0};
 
     double *matrix_ptrs[3] = {matrix[0], matrix[1], matrix[2]};
 
@@ -218,7 +218,7 @@ int main() {
         points_list[i] = point3(x,y,z);
     }
 
-    bool af_transf = false;
+    bool af_transf = true; // ! true => aplica a transformaçao afim aos pontos da malha de triangulos
 
     if (af_transf){
         for (int i = 0; i < n_vertices; i++){
@@ -251,6 +251,8 @@ int main() {
         std::cin >> x >> y >> z;
         vertices_normals[i] = vec3(x, y, z); 
     }
+
+    
 
     // Render
 
