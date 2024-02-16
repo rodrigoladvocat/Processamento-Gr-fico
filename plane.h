@@ -8,21 +8,21 @@ class plane
 {
     public:
         plane(const vec3& plane_point, const vec3& plane_vector,
-              const vec3& coefic_dif = vec3(0, 0, 0), const vec3& coefic_esp = vec3(0, 0, 0),
-              const vec3& coefic_amb = vec3(0, 0, 0), const vec3& coefic_ref = vec3(0, 0, 0),
-              const vec3& coefic_tr = vec3(0, 0, 0), const vec3& coefic_rug = vec3(0, 0, 0)):
+              int coefic_dif, int coefic_esp,
+              int coefic_amb, int coefic_ref,
+              int coefic_tr, int coefic_rug):
               pp(plane_point), pv(plane_vector), coef_dif(coefic_dif),
               coef_esp(coefic_esp), coef_amb(coefic_amb), coef_ref(coefic_ref),
               coef_tr(coefic_tr), coef_rug(coefic_rug) {}
 
         vec3 pp;
         vec3 pv;
-        vec3 coef_dif;
-        vec3 coef_esp;
-        vec3 coef_amb;
-        vec3 coef_ref;
-        vec3 coef_tr;
-        vec3 coef_rug;
-}
+        int coef_dif;
+        int coef_esp;
+        int coef_amb;
+        int coef_ref;
+        int coef_tr;
+        int coef_rug;
+};
 
 #endif

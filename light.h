@@ -3,17 +3,15 @@
 
 #include "vec3.h"
 
-class lights
+class light
 {
     public:
+        
+        light(const vec3& localizacao, const vec3& cor): loc(localizacao), color(cor) {}
 
-    int n_lights;
-    vec3* lights;
-
-    lights(int num_lights, const vec3* llights){
-        n_lights = num_lights;
-        lights = llights;
-    }
-}
+        vec3 loc;
+        vec3 color;
+    
+};
 
 #endif

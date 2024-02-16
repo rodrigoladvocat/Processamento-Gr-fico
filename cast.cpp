@@ -4,14 +4,41 @@
 #include "color.h"
 #include "sphere.h"
 #include "plane.h"
+#include "triangles.h"
+#include "light.h"
+#include <vector>
 
 #define EPSILON 2.22045e-016  // menor diferença entre dois doubles
 
-double hit_sphere(const point3& center, double radius, const ray& r) {
-    vec3 oc = r.origin() - center;
+vec3 triangle_normal(const point3& vertices, point3 *points_list)
+{
+    // finding the plane that contains the triangle
+
+    int first = vertices.x();
+    int second = vertices.y();
+    int third = vertices.z();
+
+    point3 A = points_list[first];
+    point3 B = points_list[second];
+    point3 C = points_list[third];
+
+    vec3 vec_1 = A - B;
+    vec3 vec_2 = C - B;
+
+    vec3 t_normal = cross(vec_1, vec_2);  // vetor normal ao plano que é descrito pelos três vertices do triangulo
+
+    return t_normal;
+}
+
+vec3 sphere_normal(const point3& center, const point3& intersection){
+    return (intersection - center);
+}
+
+double hit_sphere(sphere sphere, const ray& r) {
+    vec3 oc = r.origin() - sphere.cent;
     auto a = dot(r.direction(), r.direction());
     auto b = 2.0 * dot(oc, r.direction());
-    auto c = dot(oc, oc) - radius*radius;
+    auto c = dot(oc, oc) - sphere.rad*sphere.rad;
     auto delta = b*b - 4*a*c;
 
     if (delta < 0) return -1;
@@ -32,8 +59,7 @@ double hit_plane(const point3& plane_point, const vec3& plane_vector, const ray&
 }
 
 double hit_triangle(const point3& vertices, point3 *points_list, const ray& r){
-    // finding the plane that contains the triangle
-
+    
     int first = vertices.x();
     int second = vertices.y();
     int third = vertices.z();
@@ -42,10 +68,7 @@ double hit_triangle(const point3& vertices, point3 *points_list, const ray& r){
     point3 B = points_list[second];
     point3 C = points_list[third];
 
-    vec3 vec_1 = A - B;
-    vec3 vec_2 = C - B;
-
-    vec3 t_normal = cross(vec_1, vec_2);  // vetor normal ao plano que é descrito pelos três vertices do triangulo
+    vec3 t_normal = triangle_normal(vertices, points_list);  // vetor normal ao plano que é descrito pelos três vertices do triangulo
 
     double t = hit_plane(A, t_normal, r);
 
@@ -70,47 +93,82 @@ double hit_triangle(const point3& vertices, point3 *points_list, const ray& r){
 
 }
 
-color ray_color(const ray& r, point3* points_list, point3* triangles_list, int n_triangles) {
+color ray_color(const ray& r, triangles malha) {
 
-    int n_objects = 3;  // numero de objetos que serao renderizados, fora os triangulos
+    int n_spheres = 2;
+    int n_planes = 1;
+
     double min_t = -1;
+    vec3 min_normal;
     color min_t_color = color(0, 0, 0);
 
-    double *o_list = new double[n_objects];
-    double *t_list = new double[n_triangles];
+    int cd = 0, ce = 0, ca = 0, cr = 0, ct = 0, crug = 0;
 
-    color *color_list = new color[n_objects];
+   // declarando cada objeto
+   
+    sphere s1 = sphere(point3(2,0,0), 0.2, 
+    0, 0, 0, 0, 0, 0);  
+    sphere s2 = sphere(point3(5,5,0), 0.4, 
+    0, 0, 0, 0, 0, 0);
 
+    plane p1 = plane(point3(7, 2, 2), vec3(1, 0.2, 0.3),
+    0, 0, 0, 0, 0, 0);
+
+    std::vector<sphere> s_list;
+    std::vector<plane> p_list;
     
-    o_list[0] = hit_sphere(point3(2,0,0), 0.2, r);
-    o_list[1] = hit_sphere(point3(5,5,0), 0.4, r);
-    o_list[2] = hit_plane(point3(7, 2, 2), vec3(1, 0.2, 0.3), r);
+    s_list.push_back(s1);
+    s_list.push_back(s2);
 
-    for(int i = 0; i < n_triangles; i++){
-        t_list[i] = hit_triangle(triangles_list[i], points_list, r);
-    }
-
-    color_list[0] = color(1, 1, 1);
-    color_list[1] = color(1, 0, 0);
-    color_list[2] = color(0, 0, 1);
+    p_list.push_back(p1);
 
     color t_color = color(1,1,0);
 
-
-    for (int i = 0; i < n_objects; i++){
-        if (o_list[i] >= 1){
-            if (o_list[i] < min_t || min_t == -1 ){
-                min_t = o_list[i];
-                min_t_color = color_list[i];
+    double t;
+    for(int i = 0; i < malha.n_t; i++){
+        t = hit_triangle(malha.t_list[i], malha.p_list, r);
+        if (t >= 1){
+            if (t < min_t || min_t == -1){
+                min_t = t;
+                min_normal = triangle_normal(malha.t_list[i], malha.p_list);
+                cd = malha.coef_dif;
+                ce = malha.coef_esp;
+                ca = malha.coef_amb;
+                cr = malha.coef_ref;
+                ct = malha.coef_tr;
+                crug = malha.coef_rug;
             }
         }
     }
 
-    for (int i = 0; i < n_triangles; i++){
-        if (t_list[i] >= 1){
-            if (t_list[i] < min_t || min_t == -1){
-                min_t = t_list[i];
-                min_t_color = t_color;
+    for (int i = 0; i < n_spheres; i++){
+        t = hit_sphere(s_list[i], r);
+        if (t >= 1){
+            if (t < min_t || min_t == -1 ){
+                min_t = t;
+                min_normal = sphere_normal(s_list[i].cent, t*r.direction() + r.origin());
+                cd = s_list[i].coef_dif;
+                ce = s_list[i].coef_esp;
+                ca = s_list[i].coef_amb;
+                cr = s_list[i].coef_ref;
+                ct = s_list[i].coef_tr;
+                crug = s_list[i].coef_rug;
+            }
+        }
+    }
+
+    for (int i = 0; i < n_planes; i++){
+        t = hit_plane(p_list[i].pp, p_list[i].pv, r);
+        if (t >= 1){
+            if (t < min_t || min_t == -1 ){
+                min_t = t;
+                min_normal = p_list[i].pv;
+                cd = p_list[i].coef_dif;
+                ce = p_list[i].coef_esp;
+                ca = p_list[i].coef_amb;
+                cr = p_list[i].coef_ref;
+                ct = p_list[i].coef_tr;
+                crug = p_list[i].coef_rug;
             }
         }
     }
@@ -118,25 +176,6 @@ color ray_color(const ray& r, point3* points_list, point3* triangles_list, int n
     return min_t_color;
 
 }
-
-/*
-    A = [ cos(a) sen(a) 0]
-        [-sen(a) cos(a) 0]
-        [ 0      0      1]
-
-        matriz de rotaçao em torno do eixo z
-
-    B = [0]
-        [1]
-        [1]
-
-        translaçao
-
-
-                 [x*cos(a) +  y*sen(a)]     [0]
-    T(x, y, z) = [-x*sen(a) + y*cos(a)]  +  [1]
-                 [          z         ]     [1]
-*/
 
 point3 vec_matrix_mult(double** matrix_ptrs, point3 vec){
     double vec_sub[3] = {0., 0., 0.};
@@ -252,7 +291,10 @@ int main() {
         vertices_normals[i] = vec3(x, y, z); 
     }
 
-    
+    // criando objeto da malha de triangulos
+    triangles malha = triangles(n_triangles, points_list, triangles_list,
+                                0, 0, 0, 0, 0, 0);
+
 
     // Render
 
@@ -267,7 +309,7 @@ int main() {
 
             ray r(camera_center, ray_direction);
 
-            pixel_color = ray_color(r, points_list, triangles_list, n_triangles);   // painting the pixel with the color of the object that the pixel intercepted
+            pixel_color = ray_color(r, malha);   // painting the pixel with the color of the object that the pixel intercepted
             
             write_color(std::cout, pixel_color);
         }

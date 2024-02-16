@@ -7,10 +7,10 @@
 class triangles
 {
     public:
-        triangles(const int num_t, const vec3* point_list, const vec3* triangle_list,
-                  const vec3& coefic_dif, const vec3& coefic_esp,
-                  const vec3& coefic_amb, const vec3& coefic_ref,
-                  const vec3& coefic_tr, const vec3& coefic_rug
+        triangles(const int num_t, vec3* point_list, vec3* triangle_list,
+                  int coefic_dif, int coefic_esp,
+                  int coefic_amb, int coefic_ref,
+                  int coefic_tr, int coefic_rug
                   ): 
                   n_t(num_t), p_list(point_list), t_list(triangle_list),
                   coef_dif(coefic_dif), coef_esp(coefic_esp), coef_amb(coefic_amb), 
@@ -18,12 +18,12 @@ class triangles
         int n_t;
         vec3* p_list;
         vec3* t_list;
-        vec3 coef_dif;
-        vec3 coef_esp;
-        vec3 coef_amb;
-        vec3 coef_ref;
-        vec3 coef_tr;
-        vec3 coef_rug;
-}
+        int coef_dif;
+        int coef_esp;
+        int coef_amb;
+        int coef_ref;
+        int coef_tr;
+        int coef_rug;
+};
 
 #endif
