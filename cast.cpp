@@ -7,6 +7,7 @@
 #include "triangles.h"
 #include "light.h"
 #include <vector>
+#include <cmath>
 
 #define EPSILON 2.22045e-016  // menor diferença entre dois doubles
 
@@ -27,11 +28,11 @@ vec3 triangle_normal(const point3& vertices, point3 *points_list)
 
     vec3 t_normal = cross(vec_1, vec_2);  // vetor normal ao plano que é descrito pelos três vertices do triangulo
 
-    return t_normal;
+    return unit_vector(t_normal);
 }
 
 vec3 sphere_normal(const point3& center, const point3& intersection){
-    return (intersection - center);
+    return unit_vector(intersection - center);
 }
 
 double hit_sphere(sphere sphere, const ray& r) {
@@ -96,30 +97,52 @@ double hit_triangle(const point3& vertices, point3 *points_list, const ray& r){
 // formula para o vetor normal à superficie e vetor incidente normalizados
 // vetor incidente apontando da interseçao até a fonte de luz
 vec3 reflected_light(vec3 normal_vector, vec3 incident_vector){
-    vec3 product = 2 * dot(normal_vector, incident_vector) * normal_vector;
+    vec3 product = 2 * dot(unit_vector(normal_vector), unit_vector(incident_vector)) * unit_vector(normal_vector);
 
-    return (product - incident_vector);
+    return unit_vector(product - incident_vector);
 }
 
-color ray_color(const ray& r, triangles malha, std::vector<light> l_list, color filter) {
+vec3 phong_equation(double ka, const color& ia, int n_lights, std::vector<light> light, 
+                    point3 intersection, color od, double kd, vec3 normal_vector,
+                    double ks, point3 camera, double krug){
+    vec3 ambient = ka * ia;
 
-    int n_spheres = 2;
-    int n_planes = 1;
+    // somatorio:
 
+    vec3 sum = ambient;
+    for (int i = 0; i < n_lights; i++){
+
+        vec3 li = unit_vector(light[i].loc - intersection); // intersecao -> fonte de luz
+        vec3 reflection = reflected_light(normal_vector, li); // calculando vetor da luz refletida na sup.
+        vec3 v = unit_vector(camera - intersection); // intersecao -> observador (camera)
+
+        color iLn = light[i].color;
+        
+        vec3 first_factor = iLn * od * kd * dot(normal_vector, li);
+
+        vec3 second_factor = iLn * ks * pow(dot(reflection, v), krug);
+        
+        sum = sum + first_factor + second_factor;
+    }
+
+    return sum;
+}
+
+color ray_color(const ray& r, triangles malha, std::vector<light> l_list, color filter, point3 camera) {
     double min_t = -1;
     vec3 min_normal;
     color min_t_color = color(0, 0, 0);
 
-    int cd = 0, ce = 0, ca = 0, cr = 0, ct = 0, crug = 0;
+    double cd = 0, ce = 0, ca = 0, cr = 0, ct = 0, crug = 0;
 
    // declarando cada objeto
    
-    sphere s1 = sphere(point3(2,0,0), 0.2, 
+    sphere s1 = sphere(color(0, 0, 0), point3(2,0,0), 0.2, 
     0, 0, 0, 0, 0, 0);  
-    sphere s2 = sphere(point3(5,5,0), 0.4, 
+    sphere s2 = sphere(color(0, 0, 0), point3(5,5,0), 0.4, 
     0, 0, 0, 0, 0, 0);
 
-    plane p1 = plane(point3(7, 2, 2), vec3(1, 0.2, 0.3),
+    plane p1 = plane(color(0, 0, 0), point3(7, 2, 2), vec3(1, 0.2, 0.3),
     0, 0, 0, 0, 0, 0);
 
     std::vector<sphere> s_list;
@@ -130,7 +153,8 @@ color ray_color(const ray& r, triangles malha, std::vector<light> l_list, color 
 
     p_list.push_back(p1);
 
-    color t_color = color(1,1,0);
+    int n_spheres = s_list.size();
+    int n_planes = p_list.size();
 
     double t;
     for(int i = 0; i < malha.n_t; i++){
@@ -145,6 +169,7 @@ color ray_color(const ray& r, triangles malha, std::vector<light> l_list, color 
                 cr = malha.coef_ref;
                 ct = malha.coef_tr;
                 crug = malha.coef_rug;
+                min_t_color = malha.color;
             }
         }
     }
@@ -161,6 +186,7 @@ color ray_color(const ray& r, triangles malha, std::vector<light> l_list, color 
                 cr = s_list[i].coef_ref;
                 ct = s_list[i].coef_tr;
                 crug = s_list[i].coef_rug;
+                min_t_color = s_list[i].color;
             }
         }
     }
@@ -177,7 +203,23 @@ color ray_color(const ray& r, triangles malha, std::vector<light> l_list, color 
                 cr = p_list[i].coef_ref;
                 ct = p_list[i].coef_tr;
                 crug = p_list[i].coef_rug;
+                min_t_color = p_list[i].color;
             }
+        }
+    }
+
+    point3 intersec = r.at(min_t);
+
+    if (min_t != -1){
+        min_t_color = phong_equation(ca, filter, l_list.size(), l_list, intersec,
+                       min_t_color, cd, min_normal, ce, camera, crug);
+
+    }
+
+    // limitando valor rgb
+    for (int i = 0; i < 3; i++){
+        if (min_t_color.e[i] >= 255){
+            min_t_color.e[i] = 255;
         }
     }
 
@@ -299,7 +341,7 @@ int main() {
     }
 
     // criando objeto da malha de triangulos
-    triangles malha = triangles(n_triangles, points_list, triangles_list,
+    triangles malha = triangles(color(0, 0, 0), n_triangles, points_list, triangles_list,
                                 0, 0, 0, 0, 0, 0);
 
     
@@ -325,7 +367,7 @@ int main() {
 
             ray r(camera_center, ray_direction);
 
-            pixel_color = ray_color(r, malha, l_list, filter);   // painting the pixel with the color of the object that the pixel intercepted
+            pixel_color = ray_color(r, malha, l_list, filter, camera_center);   // painting the pixel with the color of the object that the pixel intercepted
             
             write_color(std::cout, pixel_color);
         }
