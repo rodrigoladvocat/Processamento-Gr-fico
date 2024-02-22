@@ -102,10 +102,11 @@ vec3 reflected_light(vec3 normal_vector, vec3 incident_vector){
     return unit_vector(product - incident_vector);
 }
 
-vec3 phong_equation(double ka, const color& ia, int n_lights, std::vector<light> light, 
+color phong_equation(double ka, const color& ia, int n_lights, std::vector<light> light, 
                     point3 intersection, color od, double kd, vec3 normal_vector,
                     double ks, point3 camera, double krug){
     vec3 ambient = ka * ia;
+    color iLn;
 
     // somatorio:
 
@@ -116,13 +117,20 @@ vec3 phong_equation(double ka, const color& ia, int n_lights, std::vector<light>
         vec3 reflection = reflected_light(normal_vector, li); // calculando vetor da luz refletida na sup.
         vec3 v = unit_vector(camera - intersection); // intersecao -> observador (camera)
 
-        color iLn = light[i].color;
+        iLn = light[i].color;
         
         vec3 first_factor = iLn * od * kd * dot(normal_vector, li);
 
         vec3 second_factor = iLn * ks * pow(dot(reflection, v), krug);
         
         sum = sum + first_factor + second_factor;
+    }
+
+    // limitando valor rgb
+    for (int i = 0; i < 3; i++){
+        if (sum.e[i] - 255.0 >= 0){
+            sum.e[i] = 255;
+        }
     }
 
     return sum;
@@ -137,13 +145,13 @@ color ray_color(const ray& r, triangles malha, std::vector<light> l_list, color 
 
    // declarando cada objeto
    
-    sphere s1 = sphere(color(0, 0, 0), point3(2,0,0), 0.2, 
-    0, 0, 0, 0, 0, 0);  
-    sphere s2 = sphere(color(0, 0, 0), point3(5,5,0), 0.4, 
-    0, 0, 0, 0, 0, 0);
+    sphere s1 = sphere(vec3(200, 0, 0), point3(2,0,0), 0.2, 
+    1, 0, 0, 0, 0, 0);  
+    sphere s2 = sphere(vec3(200, 0, 0), point3(5,5,0), 0.4, 
+    1, 0, 0, 0, 0, 0);
 
-    plane p1 = plane(color(0, 0, 0), point3(7, 2, 2), vec3(1, 0.2, 0.3),
-    0, 0, 0, 0, 0, 0);
+    plane p1 = plane(vec3(200, 0, 0), point3(7, 2, 2), vec3(1, 0.2, 0.3),
+    0.5, 0, 0, 0, 0, 0);
 
     std::vector<sphere> s_list;
     std::vector<plane> p_list;
@@ -214,13 +222,6 @@ color ray_color(const ray& r, triangles malha, std::vector<light> l_list, color 
         min_t_color = phong_equation(ca, filter, l_list.size(), l_list, intersec,
                        min_t_color, cd, min_normal, ce, camera, crug);
 
-    }
-
-    // limitando valor rgb
-    for (int i = 0; i < 3; i++){
-        if (min_t_color.e[i] >= 255){
-            min_t_color.e[i] = 255;
-        }
     }
 
     return min_t_color;
@@ -307,7 +308,7 @@ int main() {
         points_list[i] = point3(x,y,z);
     }
 
-    bool af_transf = true; // ! true => aplica a transformaçao afim aos pontos da malha de triangulos
+    bool af_transf = false; // ! true => aplica a transformaçao afim aos pontos da malha de triangulos
 
     if (af_transf){
         for (int i = 0; i < n_vertices; i++){
@@ -341,8 +342,8 @@ int main() {
     }
 
     // criando objeto da malha de triangulos
-    triangles malha = triangles(color(0, 0, 0), n_triangles, points_list, triangles_list,
-                                0, 0, 0, 0, 0, 0);
+    triangles malha = triangles(color(200, 0, 0), n_triangles, points_list, triangles_list,
+                                1, 0, 0, 0, 0, 0);
 
     
     // definindo pontos de luz:
@@ -352,7 +353,7 @@ int main() {
 
     l_list.push_back(l1);
 
-    color filter = color(10, 200, 10);
+    color filter = color(255, 255, 255);
 
     // Render
 
