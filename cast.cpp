@@ -128,7 +128,10 @@ color phong_equation(double ka, const color& ia, int n_lights, std::vector<light
 
     // limitando valor rgb
     for (int i = 0; i < 3; i++){
-        if (sum.e[i] - 255.0 >= 0){
+        if (sum.e[i] < 0.0) {
+            sum.e[i] = 0;
+        }
+        else if (sum.e[i] - 255.0 >= 0.0){
             sum.e[i] = 255;
         }
     }
@@ -146,12 +149,12 @@ color ray_color(const ray& r, triangles malha, std::vector<light> l_list, color 
    // declarando cada objeto
    
     sphere s1 = sphere(vec3(200, 0, 0), point3(2,0,0), 0.2, 
-    1, 0, 0, 0, 0, 0);  
+    1, 0, 1, 0, 0, 0);  
     sphere s2 = sphere(vec3(200, 0, 0), point3(5,5,0), 0.4, 
-    1, 0, 0, 0, 0, 0);
+    1, 0, 1, 0, 0, 0);
 
     plane p1 = plane(vec3(200, 0, 0), point3(7, 2, 2), vec3(1, 0.2, 0.3),
-    0.5, 0, 0, 0, 0, 0);
+    1, 0, 1, 0, 0, 0);
 
     std::vector<sphere> s_list;
     std::vector<plane> p_list;
@@ -343,17 +346,17 @@ int main() {
 
     // criando objeto da malha de triangulos
     triangles malha = triangles(color(200, 0, 0), n_triangles, points_list, triangles_list,
-                                1, 0, 0, 0, 0, 0);
+                                1, 0, 1, 0, 0, 0);
 
     
     // definindo pontos de luz:
     std::vector<light> l_list;
 
-    light l1 = light(point3(2, 5, 0), color(250, 250, 250));
+    light l1 = light(point3(2, 5, 0), color(200, 250, 250));
 
     l_list.push_back(l1);
 
-    color filter = color(255, 255, 255);
+    color filter = color(10, 100, 10);
 
     // Render
 

@@ -99,4 +99,8 @@ inline vec3 unit_vector(vec3 v) {
     return v / v.length();
 }
 
+inline vec3 vabs(vec3 v) {
+    return vec3(fabs(v.e[0]), fabs(v.e[1]), fabs(v.e[2]));
+}
+
 #endif
