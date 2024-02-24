@@ -99,7 +99,7 @@ double hit_triangle(const point3& vertices, point3 *points_list, const ray& r){
 vec3 reflected_light(vec3 normal_vector, vec3 incident_vector){
     vec3 product = 2 * dot(unit_vector(normal_vector), unit_vector(incident_vector)) * unit_vector(normal_vector);
 
-    return unit_vector(product - incident_vector);
+    return unit_vector(product - unit_vector(incident_vector));
 }
 
 color phong_equation(double ka, const color& ia, int n_lights, std::vector<light> light, 
