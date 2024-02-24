@@ -100,7 +100,7 @@ vec3 reflected_light(vec3 normal_vector, vec3 incident_vector){
 
     double dp = dot(unit_vector(incident_vector), normal_vector);
 
-    vec3 product = 2* dp * unit_vector(incident_vector);
+    vec3 product = 2* dp * unit_vector(normal_vector);
 
     return unit_vector(product - unit_vector(incident_vector));
 }
@@ -108,26 +108,13 @@ vec3 reflected_light(vec3 normal_vector, vec3 incident_vector){
 
 color ray_color(ray& r, triangles malha, std::vector<light> l_list, color filter, point3 camera, int limit);
 
-vec3 recursive_reflection(double kr, point3 intersection, point3 camera, vec3 normal_vec, triangles malha, 
-                          std::vector<light> l_list, color filter, int limit = 0) {
-
-    if (limit > 0) {
-        return color(0, 0, 0);
-    }
-    limit = limit + 1;
-
-    ray rr = ray(intersection, reflected_light(normal_vec, unit_vector(camera - intersection)));
-
-    return kr * ray_color(rr, malha, l_list, filter, camera, limit);
-}
-
 color phong_equation(double ka, const color& ia, int n_lights, std::vector<light> light, 
                     point3 intersection, color od, double kd, vec3 normal_vector,
                     double ks, point3 camera, double krug, double kr, triangles malha, int limit){
     vec3 ambient = ka * ia;
     color iLn;
 
-    if (limit > 3){
+    if (limit > 2){
         return color(0, 0, 0);
     }
 
@@ -171,7 +158,7 @@ color phong_equation(double ka, const color& ia, int n_lights, std::vector<light
     // parte recursiva
     ray rr = ray(intersection, reflected_light(normal_vector, unit_vector(camera - intersection))); // reflexão
 
-    color direct_refl = ray_color(rr, malha, light, ia, camera, limit); 
+    color direct_refl = ray_color(rr, malha, light, ia, intersection, limit); 
 
     color recursive_factor = kr * direct_refl;
     
@@ -208,10 +195,10 @@ color ray_color(ray& r, triangles malha, std::vector<light> l_list, color filter
 
     //declarando cada objeto
    
-    sphere s1 = sphere(vec3(80, 80, 0), point3(2,0.5,0), 0.5, 
+    sphere s1 = sphere(vec3(80, 0, 0), point3(2,0,-0.5), 0.5, 
     1, 0, 1, 1, 0, 0);  
     
-    sphere s2 = sphere(vec3(0, 100, 80), point3(2,-0.5,0), 0.5, 
+    sphere s2 = sphere(vec3(0, 0, 80), point3(2,0,0.5), 0.5, 
     1, 0, 1, 1, 0, 0);
 
     // plane p1 = plane(vec3(0, 0, 0), point3(7, 2, 2), vec3(1, 0.2, 0.3),
