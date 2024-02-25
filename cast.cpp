@@ -106,15 +106,16 @@ vec3 reflected_light(vec3 normal_vector, vec3 incident_vector){
 }
 
 
-color ray_color(ray& r, triangles malha, std::vector<light> l_list, color filter, point3 camera, int limit);
+color ray_color(ray& r, triangles malha, std::vector<light> l_list, color filter, point3 camera, int limit, bool in);
 
 color phong_equation(double ka, const color& ia, int n_lights, std::vector<light> light, 
                     point3 intersection, color od, double kd, vec3 normal_vector,
-                    double ks, point3 camera, double krug, double kr, triangles malha, int limit){
+                    double ks, point3 camera, double krug, double kr, triangles malha, 
+                    double kt, int limit, bool in, double refraction_index) {
     vec3 ambient = ka * ia;
     color iLn;
 
-    if (limit > 2){
+    if (limit > 3){
         return color(0, 0, 0);
     }
 
@@ -156,11 +157,13 @@ color phong_equation(double ka, const color& ia, int n_lights, std::vector<light
     }
 
     // parte recursiva
+    color recursive_factor = color(0, 0, 0);
+
     ray rr = ray(intersection, reflected_light(normal_vector, unit_vector(camera - intersection))); // reflexão
 
-    color direct_refl = ray_color(rr, malha, light, ia, intersection, limit); 
+    color direct_refl = ray_color(rr, malha, light, ia, intersection, limit, in); 
 
-    color recursive_factor = kr * direct_refl;
+    recursive_factor += kr * direct_refl;
     
     for (int i = 0; i < 3; i++){
         if (recursive_factor.e[i] < 0.0) {
@@ -169,7 +172,45 @@ color phong_equation(double ka, const color& ia, int n_lights, std::vector<light
         else if (recursive_factor.e[i] - 255.0 >= 0.0){
             recursive_factor.e[i] = 255;
         }
+    }
+
+    normal_vector = unit_vector(normal_vector);
+    vec3 dir = unit_vector(camera - intersection);
+
+    if (dot(normal_vector, dir) < 0){
+        normal_vector = -1.0 * normal_vector;
+    }
+
+    double cosTheta1 = dot(normal_vector, dir);
+    double senTheta1_2 = 1.0 - cosTheta1 * cosTheta1;
+
+    double ref;
+    if (!in){
+        ref = 1.0 / refraction_index; 
+    }
+    else{
+        ref = refraction_index;
+    }
+
+    double cosTheta2 = sqrt(1.0 - ref * ref * senTheta1_2);
+
+    vec3 refracted_ray = (-1.0 * dir * ref) - (normal_vector * (cosTheta2 - (1 / ref) * cosTheta1));
+    ray refrr = ray(intersection, unit_vector(refracted_ray));
+
+    in  = !in;
+    color direct_refr = ray_color(refrr, malha, light, ia, intersection, limit, in);
+
+    recursive_factor +=  kt * direct_refr;
+
+    for (int i = 0; i < 3; i++){
+        if (recursive_factor.e[i] < 0.0) {
+            recursive_factor.e[i] = 0;
         }
+        else if (recursive_factor.e[i] - 255.0 >= 0.0){
+            recursive_factor.e[i] = 255;
+        }
+    }
+
     // end recursiva
 
     sum += recursive_factor;
@@ -186,20 +227,20 @@ color phong_equation(double ka, const color& ia, int n_lights, std::vector<light
     return sum;
 }
 
-color ray_color(ray& r, triangles malha, std::vector<light> l_list, color filter, point3 camera, int limit) {
+color ray_color(ray& r, triangles malha, std::vector<light> l_list, color filter, point3 camera, int limit, bool in) {
     double min_t = -1;
     vec3 min_normal;
     color min_t_color = color(0, 0, 0);
 
-    double cd = 0, ce = 0, ca = 0, cr = 0, ct = 0, crug = 0;
+    double cd = 0, ce = 0, ca = 0, cr = 0, ct = 0, crug = 0, n_refr = 0;
 
     //declarando cada objeto
    
-    sphere s1 = sphere(vec3(80, 0, 0), point3(2,0,-0.5), 0.5, 
-    1, 0, 1, 1, 0, 0);  
+    sphere s1 = sphere(vec3(80, 0, 0), point3(4,0,0), 0.5, 
+    1, 0, 1, 0, 0, 0, 1.5);  
     
-    sphere s2 = sphere(vec3(0, 0, 80), point3(2,0,0.5), 0.5, 
-    1, 0, 1, 1, 0, 0);
+    sphere s2 = sphere(vec3(0, 0, 80), point3(2,0,0), 0.5, 
+    1, 0, 1, 0, 1, 0, 1.01);
 
     // plane p1 = plane(vec3(0, 0, 0), point3(7, 2, 2), vec3(1, 0.2, 0.3),
     // 1, 0, 1, 0, 0, 0);
@@ -218,7 +259,7 @@ color ray_color(ray& r, triangles malha, std::vector<light> l_list, color filter
     double t;
     for(int i = 0; i < malha.n_t; i++){
         t = hit_triangle(malha.t_list[i], malha.p_list, r);
-        if (t > EPSILON){
+        if (t > 0){
             if (t < min_t || min_t == -1){
                 min_t = t;
                 min_normal = triangle_normal(malha.t_list[i], malha.p_list);
@@ -230,13 +271,14 @@ color ray_color(ray& r, triangles malha, std::vector<light> l_list, color filter
                 ct = malha.coef_tr;
                 crug = malha.coef_rug;
                 min_t_color = malha.color;
+                n_refr = malha.refr_index;
             }
         }
     }
 
     for (int i = 0; i < n_spheres; i++){
         t = hit_sphere(s_list[i], r);
-        if (t > EPSILON){
+        if (t > 0){
             if (t < min_t || min_t == -1 ){
                 min_t = t;
                 min_normal = sphere_normal(s_list[i].cent, t*r.direction() + r.origin());
@@ -247,13 +289,14 @@ color ray_color(ray& r, triangles malha, std::vector<light> l_list, color filter
                 ct = s_list[i].coef_tr;
                 crug = s_list[i].coef_rug;
                 min_t_color = s_list[i].color;
+                n_refr = s_list[i].refr_index;
             }
         }
     }
 
     for (int i = 0; i < n_planes; i++){
         t = hit_plane(p_list[i].pp, p_list[i].pv, r);
-        if (t > EPSILON){
+        if (t > 0){
             if (t < min_t || min_t == -1 ){
                 min_t = t;
                 min_normal = p_list[i].pv;
@@ -265,11 +308,12 @@ color ray_color(ray& r, triangles malha, std::vector<light> l_list, color filter
                 ct = p_list[i].coef_tr;
                 crug = p_list[i].coef_rug;
                 min_t_color = p_list[i].color;
+                n_refr = p_list[i].refr_index;
             }
         }
     }
 
-    if (dot(min_normal, r.direction()) > EPSILON) {
+    if (dot(min_normal, r.direction()) > 0) {
         min_normal = -min_normal;
     }
 
@@ -277,7 +321,7 @@ color ray_color(ray& r, triangles malha, std::vector<light> l_list, color filter
 
     if (min_t != -1){
         min_t_color = phong_equation(ca, filter, l_list.size(), l_list, intersec,
-                       min_t_color, cd, min_normal, ce, camera, crug, cr, malha, limit + 1);
+                       min_t_color, cd, min_normal, ce, camera, crug, cr, malha, ct, limit + 1, in, n_refr);
 
     }
 
@@ -400,7 +444,7 @@ int main() {
 
     // criando objeto da malha de triangulos
     triangles malha = triangles(color(200, 0, 0), n_triangles, points_list, triangles_list,
-                                1, 0, 1, 0, 0, 0);
+                                1, 0, 1, 0, 0, 0, 1);
 
     
     // definindo pontos de luz:
@@ -425,7 +469,7 @@ int main() {
 
             ray r(camera_center, ray_direction);
 
-            pixel_color = ray_color(r, malha, l_list, filter, camera_center, 0);   // painting the pixel with the color of the object that the pixel intercepted
+            pixel_color = ray_color(r, malha, l_list, filter, camera_center, 0, false);   // painting the pixel with the color of the object that the pixel intercepted
             
             write_color(std::cout, pixel_color);
         }
