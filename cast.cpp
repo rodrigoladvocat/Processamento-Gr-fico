@@ -184,12 +184,17 @@ color phong_equation(double ka, const color& ia, int n_lights, std::vector<light
     double cosTheta1 = dot(normal_vector, dir);
     double senTheta1_2 = 1.0 - cosTheta1 * cosTheta1;
 
+    if (refraction_index == 0.0){
+        refraction_index = 1.1;
+    }
+
     double ref;
     if (!in){
         ref = 1.0 / refraction_index; 
     }
     else{
         ref = refraction_index;
+        limit -= 1;
     }
 
     double cosTheta2 = sqrt(1.0 - ref * ref * senTheta1_2);
@@ -236,14 +241,14 @@ color ray_color(ray& r, triangles malha, std::vector<light> l_list, color filter
 
     //declarando cada objeto
    
-    sphere s1 = sphere(vec3(80, 0, 0), point3(4,0,0), 0.5, 
-    1, 0, 1, 0, 0, 0, 1.5);  
+    sphere s1 = sphere(vec3(80, 0, 0), point3(2,0,-1), 0.5, 
+    0.1, 0.5, 1, 1, 0, 1, 1.5);  
     
-    sphere s2 = sphere(vec3(0, 0, 80), point3(2,0,0), 0.5, 
-    1, 0, 1, 0, 1, 0, 1.01);
+    sphere s2 = sphere(vec3(0, 0, 80), point3(2,0,1), 0.5, 
+    0.1, 0.1, 1, 1, 1, 1, 1.01);
 
-    // plane p1 = plane(vec3(0, 0, 0), point3(7, 2, 2), vec3(1, 0.2, 0.3),
-    // 1, 0, 1, 0, 0, 0);
+    // plane p1 = plane(vec3(0, 80, 0), point3(4, 2, 2), vec3(1, 0.5, 0.3),
+    // 1, 0, 1, 1, 0, 0, 0);
 
     std::vector<sphere> s_list;
     std::vector<plane> p_list;
@@ -443,14 +448,14 @@ int main() {
     }
 
     // criando objeto da malha de triangulos
-    triangles malha = triangles(color(200, 0, 0), n_triangles, points_list, triangles_list,
+    triangles malha = triangles(color(0, 0, 0), n_triangles, points_list, triangles_list,
                                 1, 0, 1, 0, 0, 0, 1);
 
     
     // definindo pontos de luz:
     std::vector<light> l_list;
 
-    light l1 = light(point3(2, 5, 0), color(255, 255, 255));
+    light l1 = light(point3(2, 5, 0), color(60, 60, 60));
 
     l_list.push_back(l1);
 
