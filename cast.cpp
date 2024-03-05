@@ -6,10 +6,16 @@
 #include "plane.h"
 #include "triangles.h"
 #include "light.h"
+#include "octree.h"
 #include <vector>
 #include <cmath>
 
 #define EPSILON 2.22045e-016  // menor diferença entre dois doubles
+
+double MIN_BORDER = -2500;
+double MAX_BORDER = 2500;
+
+// Octree octree = Octree(1, 5001, MIN_BORDER, MAX_BORDER, MIN_BORDER, MAX_BORDER);
 
 vec3 triangle_normal(const point3& vertices, point3 *points_list)
 {
@@ -125,7 +131,7 @@ color phong_equation(double ka, const color& ia, int n_lights, std::vector<light
 
         vec3 li = unit_vector(light[i].loc - intersection); // intersecao -> fonte de luz
         vec3 reflection = reflected_light(normal_vector, li); // calculando vetor da luz refletida na sup.
-        vec3 v = unit_vector(camera - intersection); // intersecao -> observador (camera)
+        vec3 v = unit_vector(camera - intersection); // intersecao -> observador
 
         iLn = light[i].color;
 
@@ -233,6 +239,8 @@ color phong_equation(double ka, const color& ia, int n_lights, std::vector<light
 }
 
 color ray_color(ray& r, triangles malha, std::vector<light> l_list, color filter, point3 camera, int limit, bool in) {
+    bool octree_on = true;
+
     double min_t = -1;
     vec3 min_normal;
     color min_t_color = color(0, 0, 0);
@@ -241,11 +249,11 @@ color ray_color(ray& r, triangles malha, std::vector<light> l_list, color filter
 
     //declarando cada objeto
    
-    sphere s1 = sphere(vec3(80, 0, 0), point3(2,0,-1), 0.5, 
-    0.1, 0.5, 1, 1, 0, 1, 1.5);  
+    sphere s1 = sphere(vec3(0, 0, 0), point3(2,0,-1), 0.5, 
+    1, 0, 0, 1, 0, 1, 1.5);  
     
-    sphere s2 = sphere(vec3(0, 0, 80), point3(2,0,1), 0.5, 
-    0.1, 0.1, 1, 1, 1, 1, 1.01);
+    sphere s2 = sphere(vec3(0, 0, 0), point3(2,0,1), 0.5, 
+    1, 0, 0, 1, 1, 1, 1.01);
 
     // plane p1 = plane(vec3(0, 80, 0), point3(4, 2, 2), vec3(1, 0.5, 0.3),
     // 1, 0, 1, 1, 0, 0, 0);
@@ -262,24 +270,61 @@ color ray_color(ray& r, triangles malha, std::vector<light> l_list, color filter
     int n_planes = p_list.size();  
 
     double t;
-    for(int i = 0; i < malha.n_t; i++){
-        t = hit_triangle(malha.t_list[i], malha.p_list, r);
-        if (t > 0){
-            if (t < min_t || min_t == -1){
-                min_t = t;
-                min_normal = triangle_normal(malha.t_list[i], malha.p_list);
+    if (!octree_on) {
+            for(int i = 0; i < malha.n_t; i++){
+            t = hit_triangle(malha.t_list[i], malha.p_list, r);
+            if (t > 0){
+                if (t < min_t || min_t == -1){
+                    min_t = t;
+                    min_normal = triangle_normal(malha.t_list[i], malha.p_list);
 
-                cd = malha.coef_dif;
-                ce = malha.coef_esp;
-                ca = malha.coef_amb;
-                cr = malha.coef_ref;
-                ct = malha.coef_tr;
-                crug = malha.coef_rug;
-                min_t_color = malha.color;
-                n_refr = malha.refr_index;
+                    cd = malha.coef_dif;
+                    ce = malha.coef_esp;
+                    ca = malha.coef_amb;
+                    cr = malha.coef_ref;
+                    ct = malha.coef_tr;
+                    crug = malha.coef_rug;
+                    min_t_color = malha.color;
+                    n_refr = malha.refr_index;
+                }
             }
         }
     }
+    else {
+        Octree *octree = new Octree(1, 5001, MIN_BORDER, MAX_BORDER, MIN_BORDER, MAX_BORDER);
+
+        for(int i = 0; i < malha.n_t; i++) {    // inserindo triangulos na octree
+        octree->insert(malha.t_list[i], malha.p_list, i, octree, 0);
+        }
+
+        // implementaçao do octree
+        std::vector<int> triangles;    // armazenando indices dos triangulos do octante
+        octree->find(r, octree, triangles);   // atualizando triangles
+
+        for (int i: triangles) {
+            t = hit_triangle(malha.t_list[i], malha.p_list, r);
+            if (t > 0){
+                if (t < min_t || min_t == -1){
+                    min_t = t;
+                    min_normal = triangle_normal(malha.t_list[i], malha.p_list);
+
+                    cd = malha.coef_dif;
+                    ce = malha.coef_esp;
+                    ca = malha.coef_amb;
+                    cr = malha.coef_ref;
+                    ct = malha.coef_tr;
+                    crug = malha.coef_rug;
+                    min_t_color = malha.color;
+                    n_refr = malha.refr_index;
+                }
+            }
+        }
+
+        free(octree);
+    }
+
+
+
 
     for (int i = 0; i < n_spheres; i++){
         t = hit_sphere(s_list[i], r);
@@ -448,18 +493,17 @@ int main() {
     }
 
     // criando objeto da malha de triangulos
-    triangles malha = triangles(color(0, 0, 0), n_triangles, points_list, triangles_list,
+    triangles malha = triangles(color(60, 0, 0), n_triangles, points_list, triangles_list,
                                 1, 0, 1, 0, 0, 0, 1);
-
     
     // definindo pontos de luz:
     std::vector<light> l_list;
 
-    light l1 = light(point3(2, 5, 0), color(60, 60, 60));
+    light l1 = light(point3(0, 5, 0), color(60, 60, 60));
 
     l_list.push_back(l1);
 
-    color filter = color(0, 0, 0);
+    color filter = color(100, 0, 0);
 
     // Render
 

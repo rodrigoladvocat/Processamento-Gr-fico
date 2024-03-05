@@ -4,6 +4,8 @@
 #include "vec3.h"
 #include <iostream>
 
+using namespace std;
+
 class triangles
 {
     public:
@@ -28,5 +30,17 @@ class triangles
         double coef_rug;
         double refr_index;
 };
+
+point3 getMin(vec3 vertexes, vec3* points_list){  // pegando os minimos de um triangulo
+    return point3( min(min(points_list[int(vertexes.e[0])].e[0], points_list[int(vertexes.e[1])].e[0]), points_list[int(vertexes.e[2])].e[0]),
+                   min(min(points_list[int(vertexes.e[0])].e[1], points_list[int(vertexes.e[1])].e[1]), points_list[int(vertexes.e[2])].e[1]),
+                   min(min(points_list[int(vertexes.e[0])].e[2], points_list[int(vertexes.e[1])].e[2]), points_list[int(vertexes.e[2])].e[2]));
+}
+
+point3 getMax(vec3 vertexes, vec3* points_list){  // pegando os maximos de um triangulo
+    return point3( max(max(points_list[int(vertexes.e[0])].e[0], points_list[int(vertexes.e[1])].e[0]), points_list[int(vertexes.e[2])].e[0]),
+                   max(max(points_list[int(vertexes.e[0])].e[1], points_list[int(vertexes.e[1])].e[1]), points_list[int(vertexes.e[2])].e[1]),
+                   max(max(points_list[int(vertexes.e[0])].e[2], points_list[int(vertexes.e[1])].e[2]), points_list[int(vertexes.e[2])].e[2]));
+}
 
 #endif
