@@ -15,7 +15,7 @@
 double MIN_BORDER = -2500;
 double MAX_BORDER = 2500;
 
-// Octree octree = Octree(1, 5001, MIN_BORDER, MAX_BORDER, MIN_BORDER, MAX_BORDER);
+Octree octree = Octree(1, 5001, MIN_BORDER, MAX_BORDER, MIN_BORDER, MAX_BORDER);
 
 vec3 triangle_normal(const point3& vertices, point3 *points_list)
 {
@@ -250,7 +250,7 @@ color ray_color(ray& r, triangles malha, std::vector<light> l_list, color filter
     //declarando cada objeto
    
     sphere s1 = sphere(vec3(0, 0, 0), point3(2,0,-1), 0.5, 
-    1, 0, 0, 1, 0, 1, 1.5);  
+    1, 0, 0, 1, 1, 1, 1.01);  
     
     sphere s2 = sphere(vec3(0, 0, 0), point3(2,0,1), 0.5, 
     1, 0, 0, 1, 1, 1, 1.01);
@@ -261,8 +261,8 @@ color ray_color(ray& r, triangles malha, std::vector<light> l_list, color filter
     std::vector<sphere> s_list;
     std::vector<plane> p_list;
     
-    s_list.push_back(s1);
-    s_list.push_back(s2);
+    // s_list.push_back(s1);
+    // s_list.push_back(s2);
 
     // p_list.push_back(p1);
 
@@ -291,15 +291,9 @@ color ray_color(ray& r, triangles malha, std::vector<light> l_list, color filter
         }
     }
     else {
-        Octree *octree = new Octree(1, 5001, MIN_BORDER, MAX_BORDER, MIN_BORDER, MAX_BORDER);
-
-        for(int i = 0; i < malha.n_t; i++) {    // inserindo triangulos na octree
-        octree->insert(malha.t_list[i], malha.p_list, i, octree, 0);
-        }
-
         // implementaçao do octree
         std::vector<int> triangles;    // armazenando indices dos triangulos do octante
-        octree->find(r, octree, triangles);   // atualizando triangles
+        octree.find(r, &octree, triangles);   // atualizando vetor triangles
 
         for (int i: triangles) {
             t = hit_triangle(malha.t_list[i], malha.p_list, r);
@@ -319,8 +313,6 @@ color ray_color(ray& r, triangles malha, std::vector<light> l_list, color filter
                 }
             }
         }
-
-        free(octree);
     }
 
 
@@ -504,6 +496,15 @@ int main() {
     l_list.push_back(l1);
 
     color filter = color(100, 0, 0);
+
+    // definindo octree
+    Octree *p_octree = new Octree(1, 5001, MIN_BORDER, MAX_BORDER, MIN_BORDER, MAX_BORDER);
+
+    for(int i = 0; i < malha.n_t; i++) {
+    p_octree->insert(malha.t_list[i], malha.p_list, i, p_octree, 0);
+    }
+
+    octree = *p_octree;
 
     // Render
 

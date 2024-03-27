@@ -58,7 +58,7 @@ public:
             current_node->insert_surface(t_index);
             return;
         }
-
+ 
         if(minT.e[0] > mx) child_index += 1;  // indo para a segunda metade do cubo no eixo x  => separando indices pares de impares
         if(minT.e[1] > my) child_index += 2;  // indo para a segunda metade do cubo no eixo y  => separando indices usando o segundo bit menos significativo
         if(minT.e[2] > mz) child_index += 4;  // indo para a segunda metade do cubo no eixo z  => separando indices usando o terceiro bit menos significativo
